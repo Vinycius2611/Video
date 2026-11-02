@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Costa Verde — teste HyperFrames</title>
+<style>
+html,body{margin:0;background:#09121c;color:#f7f4ee;font-family:Inter,Arial,sans-serif}
+#root{position:relative;width:540px;height:960px;overflow:hidden;background:#091522}
+.backdrop{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 65%,#234656 0%,#0a182a 56%,#070d16 100%)}
+.grid{position:absolute;inset:0;background:linear-gradient(90deg,transparent 95%,#e2bb7933 100%) 0 0/72px 72px,linear-gradient(0deg,transparent 95%,#e2bb7933 100%) 0 0/72px 72px;opacity:.25}
+.glow{position:absolute;left:120px;top:240px;width:300px;height:320px;border-radius:50%;background:#d8bc9255;filter:blur(100px)}
+.frame{position:absolute;top:286px;left:107px;width:324px;height:300px;perspective:850px}
+.stage{width:100%;height:100%;transform-style:preserve-3d}
+.wall{position:absolute;inset:26px 40px;border:3px solid #deb985;background:linear-gradient(125deg,#1b3447a0,#08162490);box-shadow:0 0 40px #d8bc9255}
+.roof{position:absolute;top:10px;left:20px;width:280px;height:150px;border-top:8px solid #e4c694;border-left:8px solid #e4c694;transform:rotate(45deg) scale(.72);box-shadow:-7px -7px 24px #e4c69422}
+.door{position:absolute;bottom:26px;left:142px;width:70px;height:134px;border:3px solid #e2c492;background:#c4a47425}
+.window{position:absolute;top:108px;left:70px;width:76px;height:65px;border:3px solid #e2c492;background:#70cbd52a}
+.titlewrap{position:absolute;top:190px;left:30px;right:30px;text-align:center}
+.kicker{font-size:18px;letter-spacing:7px;color:#d8bc92}
+.title{font-size:48px;line-height:1.03;font-weight:900;margin-top:16px;letter-spacing:-1.5px;text-shadow:0 12px 24px #0008}
+.pricebox{position:absolute;top:622px;left:46px;right:46px;text-align:center}
+.price{font-size:64px;font-weight:900;color:#e9cda0}
+.period{font-size:23px;letter-spacing:5px;color:#f7f4ee}
+.brand{position:absolute;bottom:180px;left:50px;right:50px;text-align:center;font-size:23px;letter-spacing:5px;color:#d8bc92}
+.note{position:absolute;bottom:110px;left:40px;right:40px;text-align:center;font-size:16px;color:#f4f0e0b2;letter-spacing:2px}
+.line{position:absolute;left:108px;right:108px;bottom:168px;height:1px;background:#e6c793}
+</style></head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="6" data-width="540" data-height="960" data-fps="24">
+  <div class="backdrop"></div><div class="grid"></div><div class="glow"></div>
+  <div id="architecture" class="clip frame" data-start="0" data-duration="6" data-track-index="0"><div class="stage" id="house"><div class="roof"></div><div class="wall"></div><div class="door"></div><div class="window"></div></div></div>
+  <div id="title-clip" class="clip titlewrap" data-start="0" data-duration="6" data-track-index="1"><div id="kicker" class="kicker">VÁRZEA GRANDE • MT</div><div id="headline" class="title">JARDIM<br>COSTA VERDE</div></div>
+  <div id="price-clip" class="clip pricebox" data-start="1" data-duration="5" data-track-index="2"><div id="price" class="price">R$ 3.000</div><div id="period" class="period">POR MÊS</div></div>
+  <div id="brand-clip" class="clip brand" data-start="2" data-duration="4" data-track-index="3"><div id="brand-name">VINYCIUS MORAES</div></div>
+  <div id="line-clip" class="clip line" data-start="2" data-duration="4" data-track-index="3"><div id="line-inner"></div></div>
+  <div id="note-clip" class="clip note" data-start="2" data-duration="4" data-track-index="4"><div id="note-inner">TESTE DE RENDERIZAÇÃO • NÃO PUBLICAR</div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+window.__timelines=window.__timelines||{};
+const tl=gsap.timeline({paused:true});
+tl.fromTo("#house",{rotationY:-28,rotationX:13,z:-200,opacity:0},{rotationY:20,rotationX:-7,z:70,opacity:1,duration:5.85,ease:"power2.inOut"},0);
+tl.fromTo("#headline",{opacity:0,y:90,scale:.8},{opacity:1,y:0,scale:1,duration:1.3,ease:"power4.out"},0);
+tl.fromTo("#kicker",{opacity:0,y:-30},{opacity:1,y:0,duration:1.1,ease:"power2.out"},.2);
+tl.fromTo("#price",{opacity:0,y:90,scale:1.5},{opacity:1,y:0,scale:1,duration:1.2,ease:"power4.out"},1);
+tl.fromTo("#period",{opacity:0,y:20},{opacity:1,y:0,duration:1},1.5);
+tl.fromTo("#brand-name",{opacity:0,y:40},{opacity:1,y:0,duration:1.4},2);
+tl.fromTo("#note-inner",{opacity:0},{opacity:1,duration:1.2},2.5);
+window.__timelines["main"]=tl;
+</script>
+</body></html>
