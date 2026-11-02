@@ -1,0 +1,52 @@
+name: Limite HyperFrames - 4K 60 FPS
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/limite-4k60.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  limite-4k60:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar FFmpeg e áudio de verificação
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          mkdir -p renders reports assets
+          ffmpeg -hide_banner -loglevel error -y -f lavfi -i "sine=frequency=523.25:sample_rate=48000:duration=5" -af "volume=0.2,afade=t=in:st=0:d=0.35,afade=t=out:st=4.4:d=0.6" -ar 48000 -ac 2 assets/probe.wav
+      - name: HyperFrames oficial e Chromium
+        run: |
+          npx --yes hyperframes@latest browser ensure
+      - name: Teste de limite 2160 x 3840 a 60 FPS / delivery
+        run: |
+          if timeout 360s npx --yes hyperframes@latest render -c tests/premium/index.html --resolution portrait-4k --fps 60 --quality delivery -o renders/D_4K_60FPS_DELIVERY.mp4; then
+            echo "SUCCESS" | tee reports/status.txt
+          else
+            echo "FAILED_OR_TIMED_OUT" | tee reports/status.txt
+          fi
+      - name: Validar vídeo e extrair frame
+        run: |
+          if test -s renders/D_4K_60FPS_DELIVERY.mp4; then
+            ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,codec_type,width,height,r_frame_rate,sample_rate -of json renders/D_4K_60FPS_DELIVERY.mp4 | tee reports/ffprobe.json
+            ffmpeg -hide_banner -loglevel error -y -ss 2 -i renders/D_4K_60FPS_DELIVERY.mp4 -frames:v 1 reports/4k60_frame.jpg
+          fi
+      - name: Entregar resultado do limite
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyperframes-limite-4k60
+          path: |
+            renders/
+            reports/
+          if-no-files-found: warn
+          retention-days: 30
