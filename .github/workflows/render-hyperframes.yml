@@ -1,0 +1,49 @@
+name: Teste HyperFrames / MP4
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Verificar ferramentas
+        run: |
+          node --version
+          ffmpeg -version | head -n 1
+          npx --yes hyperframes@latest --help
+      - name: Instalar Chromium do HyperFrames
+        run: npx --yes hyperframes@latest browser ensure
+      - name: Conferir projeto
+        run: npx --yes hyperframes@latest check --json
+      - name: Renderizar MP4 oficial
+        run: |
+          mkdir -p renders
+          npx --yes hyperframes@latest render --fps 24 --quality draft --output renders/TESTE_HYPERFRAMES.mp4
+      - name: Inspecionar saída
+        run: |
+          test -s renders/TESTE_HYPERFRAMES.mp4
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,r_frame_rate -of json renders/TESTE_HYPERFRAMES.mp4
+      - name: Entregar MP4 e informações
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: teste-hyperframes-mp4
+          path: renders/
+          if-no-files-found: warn
