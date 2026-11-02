@@ -1,15 +1,20 @@
-name: Teste HyperFrames / MP4
+name: Laboratório HyperFrames - perfis de qualidade
 
 on:
   push:
     branches: [main]
+    paths:
+      - "index.html"
+      - "tests/**"
+      - ".github/workflows/render-hyperframes.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  render:
+  benchmark:
+    name: Renderizar / comparar perfis
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -19,31 +24,68 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: FFmpeg
+      - name: Preparar FFmpeg
         run: |
-          sudo apt-get update
+          sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
-      - name: Verificar ferramentas
+      - name: Instalar HyperFrames e navegador
         run: |
-          node --version
+          node -v
           ffmpeg -version | head -n 1
-          npx --yes hyperframes@latest --help
-      - name: Instalar Chromium do HyperFrames
-        run: npx --yes hyperframes@latest browser ensure
-      - name: Conferir projeto
-        run: npx --yes hyperframes@latest check --json
-      - name: Renderizar MP4 oficial
+          npx --yes hyperframes@latest --help | head -n 35
+          npx --yes hyperframes@latest browser ensure
+      - name: Gerar áudio de teste original em 48 kHz
         run: |
-          mkdir -p renders
-          npx --yes hyperframes@latest render --fps 24 --quality draft --output renders/TESTE_HYPERFRAMES.mp4
-      - name: Inspecionar saída
+          mkdir -p assets renders reports
+          ffmpeg -hide_banner -loglevel error -y -f lavfi -i "sine=frequency=523.25:sample_rate=48000:duration=5" -af "volume=0.2,afade=t=in:st=0:d=0.35,afade=t=out:st=4.4:d=0.6" -ar 48000 -ac 2 assets/probe.wav
+      - name: Checar composição base
+        run: npx --yes hyperframes@latest check --json | tee reports/check-base.json
+      - name: Perfil A - Full HD 30 FPS looks
         run: |
-          test -s renders/TESTE_HYPERFRAMES.mp4
-          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,r_frame_rate -of json renders/TESTE_HYPERFRAMES.mp4
-      - name: Entregar MP4 e informações
+          npx --yes hyperframes@latest render -c tests/premium/index.html --fps 30 --quality looks -o renders/A_FULLHD_30FPS_LOOKS.mp4
+      - name: Perfil B - Full HD 60 FPS delivery
+        run: |
+          npx --yes hyperframes@latest render -c tests/premium/index.html --fps 60 --quality delivery -o renders/B_FULLHD_60FPS_DELIVERY.mp4
+      - name: Perfil C - Ultra HD 4K 30 FPS looks (limite de 4 min)
+        continue-on-error: true
+        run: |
+          if timeout 240s npx --yes hyperframes@latest render -c tests/premium/index.html --fps 30 --resolution portrait-4k --quality looks -o renders/C_4K_30FPS_LOOKS.mp4; then
+            echo "4K_RENDER_SUCESSO" | tee reports/4k-status.txt
+          else
+            echo "4K_FALHOU_OU_ESTOUROU_240S" | tee reports/4k-status.txt
+          fi
+      - name: Diagnóstico de codecs, FPS, áudio e frames
+        if: always()
+        run: |
+          mkdir -p reports
+          python3 - <<'PY'
+          import json, subprocess, glob, os
+          files = glob.glob('renders/*.mp4')
+          reports = []
+          for f in files:
+              if os.path.getsize(f)==0: continue
+              p = subprocess.run(['ffprobe','-v','error','-show_format','-show_streams','-of','json',f],capture_output=True,text=True)
+              if p.returncode: continue
+              d = json.loads(p.stdout)
+              vs=[s for s in d.get('streams',[]) if s.get('codec_type')=='video']
+              au=[s for s in d.get('streams',[]) if s.get('codec_type')=='audio']
+              row={'name':os.path.basename(f),'duration':d['format'].get('duration'),'bytes':os.path.getsize(f),'video':{'codec':vs[0].get('codec_name'),'width':vs[0].get('width'),'height':vs[0].get('height'),'fps':vs[0].get('r_frame_rate')} if vs else None,'audio':[{'codec':s.get('codec_name'),'channels':s.get('channels'),'sample_rate':s.get('sample_rate')} for s in au]}
+              reports.append(row)
+              at='1.5'
+              img='reports/'+os.path.basename(f).replace('.mp4','_frame.jpg')
+              subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-ss',at,'-i',f,'-frames:v','1','-q:v','4',img],check=False)
+          with open('reports/relatorio.json','w') as out: json.dump(reports,out,ensure_ascii=False,indent=2)
+          print(json.dumps(reports,ensure_ascii=False,indent=2))
+          assert any(x['name'].startswith('A_') and x['video']['width']==1080 and x['video']['height']==1920 and x['video']['fps']=='30/1' and x['audio'] for x in reports), 'Perfil A incompleto'
+          assert any(x['name'].startswith('B_') and x['video']['width']==1080 and x['video']['height']==1920 and x['video']['fps']=='60/1' and x['audio'] for x in reports), 'Perfil B incompleto'
+          PY
+      - name: Publicar MP4s e relatório
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: teste-hyperframes-mp4
-          path: renders/
+          name: hyperframes-benchmark-premium
+          path: |
+            renders/
+            reports/
           if-no-files-found: warn
+          retention-days: 30
