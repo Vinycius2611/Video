@@ -11,8 +11,9 @@ O GitHub Actions executou com sucesso o [benchmark oficial nº 41370565561](http
 | A `looks` | 1080×1920 | 30 | 5 s | H.264 | AAC 48 kHz, estéreo | 1.386.791 bytes |
 | B `delivery` | 1080×1920 | 60 | 5 s | H.264 | AAC 48 kHz, estéreo | 1.880.048 bytes |
 | C `looks` 4K | 2160×3840 | 30 | 5 s | H.264 | AAC 48 kHz, estéreo | 3.711.104 bytes |
+| D `delivery` 4K (teste de limite) | 2160×3840 | 60 | 5 s | H.264 | AAC 48 kHz | 5.172.039 bytes |
 
-O relatório `reports/relatorio.json` e os três quadros de revisão foram gerados no próprio runner, inspecionados depois. O teste 4K concluiu dentro do limite de quatro minutos. São cenas **fictícias de demonstração**, sem fotos ou vídeos reais do imóvel. O som é um **tom de teste**, não uma narração pronta.
+O [quarto teste de limite 4K/60 FPS](https://github.com/Vinycius2611/Video/actions/runs/41371029960/artifacts/13108399332) também foi aprovado, com resultado `SUCCESS`, vídeo H.264 e áudio AAC, ambos presentes. O relatório `reports/relatorio.json` e os três quadros de revisão foram gerados no próprio runner, inspecionados depois. O teste 4K concluiu dentro do limite de quatro minutos. São cenas **fictícias de demonstração**, sem fotos ou vídeos reais do imóvel. O som é um **tom de teste**, não uma narração pronta.
 
 ## Próxima produção: Casa Costa Verde
 
@@ -26,6 +27,7 @@ O relatório `reports/relatorio.json` e os três quadros de revisão foram gerad
 - `index.html`: primeira demonstração técnica, 540×960 / 24 FPS.
 - `tests/premium/index.html`: demonstração premium 1080×1920 / 5 segundos.
 - `.github/workflows/render-hyperframes.yml`: executa o benchmark automaticamente após mudanças relevantes e também por disparo manual.
+- `.github/workflows/limite-4k60.yml`: estressa 4K/60 FPS com limite de seis minutos e registra diagnóstico.
 
 ## Obter vídeos
 
