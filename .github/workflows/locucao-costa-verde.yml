@@ -1,0 +1,59 @@
+name: Locucao alternativa Costa Verde
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/locucao-costa-verde.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  locucao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar gerador de voz TTS
+        run: |
+          python -m pip install --quiet edge-tts
+      - name: Gerar dois testes de narracao masculina pt-BR
+        run: |
+          mkdir -p voz
+          cat > voz/roteiro.txt <<'EOF'
+          Imagine chegar em casa e sentir que o fim do dia virou férias.
+          No Jardim Costa Verde, em Várzea Grande, esta casa mobiliada reúne conforto e uma área de lazer que faz toda a diferença.
+          São dois quartos, sendo uma suíte, cozinha planejada, ambientes climatizados e espaço para receber quem você gosta.
+          Lá fora, uma área gourmet com churrasqueira e piscina privativa.
+          Tudo isso por três mil reais por mês.
+          Mais do que alugar uma casa, é escolher como você quer viver.
+          Fale comigo e venha conhecer seu próximo lar.
+          EOF
+          python - <<'PY'
+          import asyncio, edge_tts, pathlib
+          text=pathlib.Path('voz/roteiro.txt').read_text()
+          async def main():
+            for voice, rate in [('pt-BR-AntonioNeural','-10%'),('pt-BR-FabioNeural','-9%')]:
+              try:
+                fn=f'voz/{voice}.mp3'
+                await edge_tts.Communicate(text,voice,rate=rate).save(fn)
+                print(voice, pathlib.Path(fn).stat().st_size)
+              except Exception as e:
+                print('Voice failed',voice,repr(e))
+          asyncio.run(main())
+          PY
+      - name: Validar duracao
+        run: |
+          sudo apt-get -qq update && sudo apt-get install -y -qq ffmpeg
+          for f in voz/*.mp3; do echo "$f"; ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 "$f"; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: locucao-alternativa-pt-BR
+          path: voz/
+          retention-days: 5
+          if-no-files-found: warn
